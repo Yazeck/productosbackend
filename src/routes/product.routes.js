@@ -20,7 +20,7 @@ import { productSchema, productUpdateSchema } from '../schemas/product.schemas.j
 import { uploadToCloudinary } from '../middlewares/uploadImage.js';
 
 import { isAdmin } from '../middlewares/isAdmin.js';
-import { validateId } from '../middlewares/validateid.js';
+import { validateId } from '../middlewares/validateId.js';
 
 const router = Router();
 
