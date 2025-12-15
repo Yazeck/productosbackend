@@ -1,1 +1,1 @@
-export const TOKEN_SECRET = 'erickardo.2'
+export const TOKEN_SECRET = 'mapaches.2025#'

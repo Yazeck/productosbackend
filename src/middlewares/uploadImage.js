@@ -1,30 +1,49 @@
-import cloudinary from 'cloudinary';
 import multer from 'multer';
 
-//configuracion de multer
-//recupera la imagen del request y la carga en memoria local
+import { v2 as cloudinary } from 'cloudinary';
+//Configuración de multer
+//multer recupera la imagen del request y la carga en memoria local
 const storage = multer.memoryStorage();
-const upload = multer({
+const upload = multer({     //upload actua como un middleware para recibir imagenes
     storage: storage,
-    limits:{
-        fileSize: 5 * 1042 * 1024 //5MB
+    limits: {
+        fileSize: 5 * 1024 * 1024//5MB
     }
-}).single('image');//single sube una sola imagen
+}).single('image');//Single sube una sola imagen
 //image es el nombre del atributo del formulario
-export const uploadCloudinary = async (req,resizeBy,next)=>{
-    const allowedMimes = [
 
+export const uploadToCloudinary = async (req, res, next) => {
+    const allowedMimes = ['image/jpeg', 'image/jpg',
+        'image/png', 'image/gif', 'image/webp'
     ];
     try {
-        upload(req, res, async(err) =>{
-            if (err.code == 'LIMIT_FILE_SIZE')
+        upload(req, res, async (err) => {
+            if (err) {
+                if (err.code == 'LIMIT_FILE_SIZE')
+                    return res.status(400)
+                        .json({ message: ['Tamaño del archivo excedido'] })
+            }//Fin del if(err)
+            if (!req.file)
                 return res.status(400)
-            .json({message: ['Tamaño de archivo extendido']})
+                    .json({ message: ['Imagen no encontrada'] })
+            if (!allowedMimes.includes(req.file.mimetype))
+                return res.status(400)
+                    .json({ message: ['Tipo de archivo no permitido'] })
 
-        })
-        next();
+            //Creamos una url de cloudinary para la imagen del producto
+            const image = req.file;
+            //Convertir el objeto de la imagen a un objeto base64
+            //para poderlo almacenar como imagen de cloudinary
+            const base64Image = Buffer.from(image.buffer).toString('base64');
+            const dataUri = 'data:' + image.mimetype + ';base64,' + base64Image;
+
+            //Subimos la imagen a Cloudinary
+            const uploadResponse = await cloudinary.uploader.upload(dataUri);
+            req.urlImage = uploadResponse.url;
+            next();
+        })//Fin de upload
     } catch (error) {
         return res.status(400)
-        .json({message: [error.message]})
-    }
-}
+            .json({ message: [error.message] })
+    }//Fin de catch
+}//Fin del uploadToCloudinary

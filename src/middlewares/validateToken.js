@@ -1,33 +1,21 @@
-// src/middlewares/validateToken.js
-import jwt from "jsonwebtoken";
 import { TOKEN_SECRET } from "../config.js";
+import jwt from 'jsonwebtoken';
 
-export function authRequired(req, res, next) {
-    try {
-        // 🔹 Primero buscamos el token en el header Authorization
-        let token = null;
-        const authHeader = req.headers.authorization;
+export const authRequired = (req, res, next)=>{
+    //Obtenemos las cookies
+    const {token} = req.cookies;
+    //console.log(cookies);
 
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-            token = authHeader.split(" ")[1];
-        } else if (req.cookies?.token) {
-            // 🔹 O si viene desde cookies (para sesiones en navegador)
-            token = req.cookies.token;
-        }
-
-        // Si no hay token, negar acceso
-        if (!token) {
-            return res.status(401).json({ message: "No token, acceso denegado" });
-        }
-
-        // Verificamos el token JWT
-        const decoded = jwt.verify(token, TOKEN_SECRET);
-
-        // Guardamos los datos del usuario en la request
-        req.user = decoded;
+    if(!token) //Si no hay token en las cookies
+        return res.status(401)
+                    .json({message: ["No token, authorización denegada"]});
+    
+    //Verificar el token
+    jwt.verify(token, TOKEN_SECRET, (err, user)=>{
+        if(err) //Si hay error al validar el token
+        return res.status(403)
+                .json({message: ['Token invalido']});
+        req.user = user; //Guardamos los datos del usuario en el objeto request
         next();
-    } catch (error) {
-        console.error("Error en authRequired:", error.message);
-        return res.status(403).json({ message: "Token inválido o expirado" });
-    }
-}
+    })
+}//Fin de authRequired

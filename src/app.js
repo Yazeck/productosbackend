@@ -1,42 +1,72 @@
-// src/app.js
-import { connectDB } from "./db.js";
-import dotenv from "dotenv";
+import express from 'express';
+import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import dotenv from 'dotenv';
+//Importamos las rutas para usuarios
+import authRoutes from './routes/auth.routes.js'
 
-dotenv.config(); // 👈 carga tu .env
-connectDB(); // 👈 conecta a MongoDB antes de levantar el servidor
+//importar las rutas para productos y para oordenes
+import productRoutes from './routes/product.routes.js';
+import orderRoutes from './routes/order.routes.js'
 
-import express from "express";
-import morgan from "morgan";
-import cors from "cors";
-import cookieParser from "cookie-parser";
 
-// ✅ Cambia las rutas a "./routes/..." (no "../")
-import authRoutes from "./routes/auth.routes.js";
-import productRoutes from "./routes/product.routes.js";
+//Configuramos la lectura de las variables de entorno
+//para configurar las URL del Backend y Frontend
+dotenv.config();
+
+console.log("backend:", process.env.BASE_URL_BACKEND);
+console.log("frontend:", process.env.BASE_URL_FRONTEND);
+
+
+
 
 const app = express();
-const PORT = 3000;
 
-// Middlewares
-app.use(cors({ credentials: true }));
-app.use(morgan("dev"));
+app.use(cors({
+    origin: [
+        process.env.BASE_URL_BACKEND,
+        process.env.BASE_URL_FRONTEND
+    ],
+    credentials: true
+}));
+app.use(morgan('dev'));
 app.use(express.json());
-app.use(cookieParser());
+app.use(cookieParser());//Cookie en formto Json
+//Recibir imagenes en el req.body
+app.use(express.urlencoded({ extended: false })); //Recibir imagenes
 
-// Rutas principales
-app.use("/api", authRoutes);
-app.use("/api", productRoutes);
+//Indicamos al servidor que utilice las rutas del objeto authRoutes
+app.use('/api/', authRoutes);
+app.use('/api/', productRoutes);
+app.use('/api/', orderRoutes);
 
-// Ruta raíz de prueba
-app.get("/", (req, res) => res.send("Hola desde /"));
+app.get('/', (req, res) => {
+    res.json({
+        message: "Bienvenido al API REST de Productos",
+        version: "1.0.0",
+        rutasDisponibles: [
+            { endpoint: "/api/register", method: "POST", description: "Registrar un nuevo usuario" },
+            { endpoint: "/api/login", method: "POST", description: "Iniciar sesión" },
+            { endpoint: "/", method: "GET", description: "Ruta inicial de la aplicación" }
+        ]
+    });
+}); //Fin de app.get /
 
-// Manejo de rutas inexistentes
-app.use((req, res) => res.status(404).send("No encontrada"));
+// Health check
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'OK',
+        message: 'ProductosApp API se está ejecutando correctamente'
+    });
+});
 
-// Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT}`);
+// Manejo de errores 404
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: 'Ruta no encontrada'
+    });
 });
 
 export default app;
